@@ -1,6 +1,7 @@
 #include <metahook.h>
 #include "cvardef.h"
 
+void(*R_ScaleColor)(int* r, int* g, int* b, int a);
 cl_enginefunc_t gEngfuncs;
 
 cvar_t* pHUDCVarR = NULL;
@@ -47,51 +48,30 @@ void Sys_ErrorEx(const char* fmt, ...)
 	TerminateProcess((HANDLE)(-1), 0);
 }
 
+int GetColorFromCVar(cvar_t* cvar, int* c)
+{
+	if (*c > 255 || *c < 0)
+		gEngfuncs.Cvar_SetValue(cvar->name, min(max(cvar->value, 0), 255));
+	return cvar->value;
+}
+
 void HookedColorScale(int* r, int* g, int* b, int a)
 {
+	//正常状态
 	if (*r == 100 && *g == 130 && *b == 200)
 	{
-		if(pHUDCVarR->value > 255)
-			gEngfuncs.Cvar_SetValue("hud_color_r", 255);
-		if (pHUDCVarR->value < 0)
-			gEngfuncs.Cvar_SetValue("hud_color_r", 0);
-		*r = pHUDCVarR->value;
-
-		if (pHUDCVarG->value > 255)
-			gEngfuncs.Cvar_SetValue("hud_color_g", 255);
-		if (pHUDCVarG->value < 0)
-			gEngfuncs.Cvar_SetValue("hud_color_g", 0);
-		*g = pHUDCVarG->value;
-
-		if (pHUDCVarB->value > 255)
-			gEngfuncs.Cvar_SetValue("hud_color_b", 255);
-		if (pHUDCVarB->value < 0)
-			gEngfuncs.Cvar_SetValue("hud_color_b", 0);
-		*b = pHUDCVarB->value;
+		*r = GetColorFromCVar(pHUDCVarR, r);
+		*g = GetColorFromCVar(pHUDCVarG, g);
+		*b = GetColorFromCVar(pHUDCVarB, b);
 	}
+	//濒死状态
 	else if (*r == 250 && *g == 0 && *b == 0)
 	{
-		if (pHUDCVarPainR->value > 255)
-			gEngfuncs.Cvar_SetValue("hud_color_pain_r", 255);
-		if (pHUDCVarPainR->value < 0)
-			gEngfuncs.Cvar_SetValue("hud_color_r", 0);
-		*r = pHUDCVarPainR->value;
-
-		if (pHUDCVarPainG->value > 255)
-			gEngfuncs.Cvar_SetValue("hud_color_pain_g", 255);
-		if (pHUDCVarPainG->value < 0)
-			gEngfuncs.Cvar_SetValue("hud_color_pain_g", 0);
-		*g = pHUDCVarPainG->value;
-
-		if (pHUDCVarPainB->value > 255)
-			gEngfuncs.Cvar_SetValue("hud_color_pain_b", 255);
-		if (pHUDCVarPainB->value < 0)
-			gEngfuncs.Cvar_SetValue("hud_color_pain_b", 0);
-		*b = pHUDCVarPainB->value;
+		*r = GetColorFromCVar(pHUDCVarPainR, r);
+		*g = GetColorFromCVar(pHUDCVarPainG, g);
+		*b = GetColorFromCVar(pHUDCVarPainB, b);
 	}
+	//还有一个255 16 16
 
-	float x = (float)a / 255;
-	*r = (int)(*r * x);
-	*g = (int)(*g * x);
-	*b = (int)(*b * x);
+	R_ScaleColor(r, g, b, a);
 }

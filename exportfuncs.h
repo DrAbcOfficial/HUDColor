@@ -1,4 +1,5 @@
 extern cl_enginefunc_t gEngfuncs;
+extern void(*R_ScaleColor)(int* r, int* g, int* b, int a);
 
 #define Sig_NotFound(name) Sys_ErrorEx("Could not found: %s\nEngine buildnum£º%d", #name, g_dwEngineBuildnum);
 #define Sig_FuncNotFound(name) if(!name) Sig_NotFound(name)
