@@ -6,7 +6,11 @@
 
 ### most code is copied from [Renderer.dll](https://github.com/hzqst/MetaHookSv/tree/main/Plugins/Renderer)
 
-### To use this plugin, install [this](https://github.com/hzqst/MetaHookSv)
+### To use this plugin, 
+1. Install [this](https://github.com/hzqst/MetaHookSv)
+2. Download `HUDColor.dll` from realse page or build it by your self.
+3. Put `HUDColor.dll` into `svencoop\metahook\plugins` directory.
+4. Add `HUDColor.dll` to `metahook\configs\plugins.lst` as last line.
 
 # New CVar
 |CVar|Value|Comment|
