@@ -9,6 +9,7 @@ extern void(__fastcall* R_CalcDamageDirection)(void* pthis, int dummy, int x, fl
 
 int Initialize(struct cl_enginefuncs_s *pEnginefuncs, int iVersion);
 void HUD_Init(void);
+int HUD_Redraw(float time, int intermission);
 void HookedColorScale(int* r, int* g, int* b, int a);
 void __fastcall HookedCalcDamageDirection(void* pThis, int dummy, int x, float y, float z);
 void Sys_ErrorEx(const char* fmt, ...);

@@ -51,6 +51,7 @@ void IPlugins::LoadClient(cl_exportfuncs_t *pExportFunc)
 	memcpy(&gExportfuncs, pExportFunc, sizeof(gExportfuncs));
 	pExportFunc->Initialize = Initialize;
 	pExportFunc->HUD_Init = HUD_Init;
+	pExportFunc->HUD_Redraw = HUD_Redraw;
 }
 
 void IPlugins::ExitGame(int iResult)

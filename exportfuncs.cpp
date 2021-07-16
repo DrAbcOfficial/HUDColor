@@ -39,9 +39,22 @@ void HUD_Init(void)
 	pHUDCVarPainB = gEngfuncs.pfnRegisterVariable("hud_color_pain_b", "0", FCVAR_CLIENTDLL | FCVAR_ARCHIVE);
 
 	pHUDCVarDizzy = gEngfuncs.pfnRegisterVariable("hud_color_dizzy", "1", FCVAR_CLIENTDLL | FCVAR_ARCHIVE);
-	pHUDCVarDizzyStep = gEngfuncs.pfnRegisterVariable("hud_color_dizzy_step", "8000", FCVAR_CLIENTDLL | FCVAR_ARCHIVE);
+	pHUDCVarDizzyStep = gEngfuncs.pfnRegisterVariable("hud_color_dizzy_step", "500", FCVAR_CLIENTDLL | FCVAR_ARCHIVE);
 
 	gExportfuncs.HUD_Init();
+}
+
+int HUD_Redraw(float time, int intermission)
+{
+	//fadeout
+	if (iStepCounter <= 0)
+	{
+		bIsInFadeOut = false;
+		iStepCounter = 0;
+	}
+	if (bIsInFadeOut && iStepCounter > 0)
+		iStepCounter--;
+	return gExportfuncs.HUD_Redraw(time, intermission);
 }
 
 void Sys_ErrorEx(const char* fmt, ...)
@@ -88,17 +101,9 @@ void HookedColorScale(int* r, int* g, int* b, int a)
 	//正常状态
 	if (*r == 100 && *g == 130 && *b == 200)
 	{
-		//fadeout
-		if (iStepCounter <= 0)
-		{
-			bIsInFadeOut = false;
-			iStepCounter = 0;
-		}
 		//挨打抖动
 		if (bIsInFadeOut)
 		{
-			if(iStepCounter > 0)
-				iStepCounter--;
 			if (iStepCounter < pHUDCVarDizzyStep->value)
 			{
 				iNowR = GetRGBStep(iNowR, GetSafeColorCVar(pHUDCVarR));
