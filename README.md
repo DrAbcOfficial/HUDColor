@@ -21,3 +21,5 @@
 |hud_color_pain_r|0~255|change dying color of HUD|
 |hud_color_pain_g|0~255|change dying color of HUD|
 |hud_color_pain_b|0~255|change dying color of HUD|
+|hud_color_dizzy|0/1|Enable HUD dizzy when get hurt|
+|hud_color_dizzy_step|0~9999999|Speed of dizzy disappearance|
