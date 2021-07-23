@@ -39,6 +39,9 @@ float flNextFadeTime = 0;
 
 #define FADE_INTERVAL 0.01
 #define GetTotalStep(cvar) max(0, cvar->value / FADE_INTERVAL)
+#define clamp(n,a,b) min(max(n,a),b)
+#define max3(a,b,c) max(a,max(b,c))
+#define min3(a,b,c) min(a,min(b,c))
 
 int Initialize(struct cl_enginefuncs_s *pEnginefuncs, int iVersion)
 {
@@ -113,46 +116,52 @@ void __fastcall HookedCalcDamageDirection(void*pThis, int dummy, int x, float y,
 	}
 	R_CalcDamageDirection(pThis, dummy, x, y, z);
 }
-//rgb2hsv and hsv2rgb
-//https://github.com/alexkuhl/colorspace-conversion-library/blob/master/colorspace_conversion_library.hpp
-void rgb_to_hsv(int r, int g, int b, float& h, float& s, float& v)
+void RGBToHSV(int r, int g, int b, float& h, float& s, float& v)
 {
 	float fr = r / 255.0, fg = g / 255.0, fb = b / 255.0;
-	int imax = max(max(r, g), b);
-	int imin = min(min(r, g), b);
-	float fmax = imax / 255.0;
-	float fmin = imin / 255.0;
-	float multiplier = (imin == imax) ? 0.0 : 60 / (fmax - fmin);
-	if (r == imax)
-		h = fmod((multiplier * (fg - fb) + 360),360);
-	else if (g == imax)
-		h = multiplier * (fb - fr) + 120;
+	float max = max3(fr, fg, fb);
+	float min = min3(fr, fg, fb);
+	float range = max - min;
+	//H
+	if (range <= 0)
+		h = 0;
+	else if (max == r)
+		h = 60 * (fg - fb) / range + (g >= b ? 0 : 360);
+	else if (max == g)
+		h = 60 * (fb - fr) / range + 120;
 	else
-		h = multiplier * (fr - fg) + 240;
-	if (imax == 0)
-		s = 0;
-	else
-		s = 1 - (fmin / fmax);
-	v = fmax;
+		h = 60 * (fr - fg) / range + 240;
+	if (abs(h) >= 360)
+		h = fmod(h, 360);
+	//S
+	s = max <= 0 ? 0 : range / max;
+	//V
+	v = max <= 0 ? 0 : max;
 }
-void hsv_to_rgb(float h, float s, float v, int& r, int& g, int& b)
+void HSVToRGB(float h, float s, float v, int& r, int& g, int& b)
 {
-	h /= 60;
-	int hi = (int)h % 6;//大于360度情况
-	float f = h - hi;
-	int p = round(v * (1 - s) * 254);
-	int q = round(v * (1 - f * s) * 254);
-	int t = round(v * (1 - (1 - f) * s) * 254);
-	int iv = round(v * 254);
-	switch (hi)
-	{
-		case 0: r = iv; g = t; b = p;break;
-		case 1: r = q; g = iv; b = p;break;
-		case 2: r = p; g = iv; b = t;break;
-		case 3: r = p; g = q; b = iv;break;
-		case 4: r = t; g = p; b = iv;break;
-		case 5: r = iv; g = p; b = q;break;
+	//0<=h<360
+	//0<=s<=1
+	//0<=v<=1
+	h = fmod(h, 360);
+	s = clamp(s, 0, 1);
+	v = clamp(v, 0, 1);
+	float section = h / 60;
+	float c = v * s;
+	float x = c * (1 - abs(fmod(section, 2) - 1));
+	float hr, hg, hb;
+	switch ((int)section) {
+		case 0:hr = c, hg = x, hb = 0; break;
+		case 1:hr = x; hg = c; hb = 0; break;
+		case 2:hr = 0; hg = c; hb = x; break;
+		case 3:hr = 0; hg = x; hb = c; break;
+		case 4:hr = x; hg = 0; hb = c; break;
+		case 5:hr = c; hg = 0; hb = x; break;
 	}
+	float m = v - c;
+	r = (hr + m) * 255;
+	g = (hg + m) * 255;
+	b = (hb + m) * 255;
 }
 void ForwardHSVColor()
 {
@@ -180,12 +189,12 @@ void HookedColorScale(int* r, int* g, int* b, int a)
 				{
 					case 0: break;
 					case 2: {
-						rgb_to_hsv(pNowColor.r, pNowColor.g, pNowColor.b, pNowHSVColor.h, pNowHSVColor.s, pNowHSVColor.v);
-						rgb_to_hsv(GetSafeColorCVar(pHUDCVarR), GetSafeColorCVar(pHUDCVarG), GetSafeColorCVar(pHUDCVarB),
+						RGBToHSV(pNowColor.r, pNowColor.g, pNowColor.b, pNowHSVColor.h, pNowHSVColor.s, pNowHSVColor.v);
+						RGBToHSV(GetSafeColorCVar(pHUDCVarR), GetSafeColorCVar(pHUDCVarG), GetSafeColorCVar(pHUDCVarB),
 							pTargetHSVColor.h, pTargetHSVColor.s, pTargetHSVColor.v);
 						ForwardHSVColor();
 						//gEngfuncs.Con_Printf("H: %f S: %f V:%f\n", pNowHSVColor.h, pNowHSVColor.s, pNowHSVColor.v);
-						hsv_to_rgb(pNowHSVColor.h, pNowHSVColor.s, pNowHSVColor.v, pNowColor.r, pNowColor.g, pNowColor.b);
+						HSVToRGB(pNowHSVColor.h, pNowHSVColor.s, pNowHSVColor.v, pNowColor.r, pNowColor.g, pNowColor.b);
 						break;
 					}
 					default: {
