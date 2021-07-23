@@ -25,7 +25,7 @@
 |hud_color_pain_r|0~255|change dying color of HUD|
 |hud_color_pain_g|0~255|change dying color of HUD|
 |hud_color_pain_b|0~255|change dying color of HUD|
-|hud_color_dizzy|0/1/2|Enable HUD dizzy when get hurt|
+|hud_color_dizzy|0/1/2|0 Disable dizzy effect, 1 RGB disappear effect, 2 Rainbow cycle effect|
 |hud_color_dizzy_time|0~9999999|time of dizzy disappearance|
 
 # Build

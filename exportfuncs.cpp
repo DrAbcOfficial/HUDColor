@@ -179,7 +179,7 @@ void HookedColorScale(int* r, int* g, int* b, int a)
 				switch ((int)pHUDCVarDizzy->value)
 				{
 					case 0: break;
-					case 1: {
+					case 2: {
 						rgb_to_hsv(pNowColor.r, pNowColor.g, pNowColor.b, pNowHSVColor.h, pNowHSVColor.s, pNowHSVColor.v);
 						rgb_to_hsv(GetSafeColorCVar(pHUDCVarR), GetSafeColorCVar(pHUDCVarG), GetSafeColorCVar(pHUDCVarB),
 							pTargetHSVColor.h, pTargetHSVColor.s, pTargetHSVColor.v);
