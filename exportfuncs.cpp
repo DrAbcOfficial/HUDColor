@@ -99,14 +99,17 @@ int GetSafeColorCVar(cvar_t* cvar)
 }
 void __fastcall HookedCalcDamageDirection(void*pThis, int dummy, int x, float y, float z)
 {
-	if (!bIsInFadeOut)
-		bIsInFadeOut = true;
-	iStepCounter = GetTotalStep(pHUDCVarDizzyTime);
-	if (pNowColor.r != 250 && pNowColor.g != 0 && pNowColor.b != 0)
+	if (pHUDCVarDizzy->value >= 1)
 	{
-		pNowColor.r = GetSafeColorCVar(pHUDCVarPainR);
-		pNowColor.g = GetSafeColorCVar(pHUDCVarPainG);
-		pNowColor.b = GetSafeColorCVar(pHUDCVarPainB);
+		if (!bIsInFadeOut)
+			bIsInFadeOut = true;
+		iStepCounter = GetTotalStep(pHUDCVarDizzyTime);
+		if (pNowColor.r != 250 && pNowColor.g != 0 && pNowColor.b != 0)
+		{
+			pNowColor.r = GetSafeColorCVar(pHUDCVarPainR);
+			pNowColor.g = GetSafeColorCVar(pHUDCVarPainG);
+			pNowColor.b = GetSafeColorCVar(pHUDCVarPainB);
+		}
 	}
 	R_CalcDamageDirection(pThis, dummy, x, y, z);
 }
@@ -157,6 +160,12 @@ void ForwardHSVColor()
 	pNowHSVColor.s += pTargetHSVColor.s - pNowHSVColor.s * (1 - iStepCounter / GetTotalStep(pHUDCVarDizzyTime));
 	pNowHSVColor.v += pTargetHSVColor.v - pNowHSVColor.v * (1 - iStepCounter / GetTotalStep(pHUDCVarDizzyTime));
 }
+void ForwardRGBColor()
+{
+	pNowColor.r += pHUDCVarR->value - pNowColor.r * (1 - iStepCounter / GetTotalStep(pHUDCVarDizzyTime));
+	pNowColor.g += pHUDCVarG->value - pNowColor.g * (1 - iStepCounter / GetTotalStep(pHUDCVarDizzyTime));
+	pNowColor.b += pHUDCVarB->value - pNowColor.b * (1 - iStepCounter / GetTotalStep(pHUDCVarDizzyTime));
+}
 void HookedColorScale(int* r, int* g, int* b, int a)
 {
 	//Õý³£×´Ì¬
@@ -167,12 +176,23 @@ void HookedColorScale(int* r, int* g, int* b, int a)
 		{
 			if (iStepCounter < GetTotalStep(pHUDCVarDizzyTime))
 			{
-				rgb_to_hsv(pNowColor.r, pNowColor.g, pNowColor.b, pNowHSVColor.h, pNowHSVColor.s, pNowHSVColor.v);
-				rgb_to_hsv(GetSafeColorCVar(pHUDCVarR), GetSafeColorCVar(pHUDCVarG),GetSafeColorCVar(pHUDCVarB),
-					pTargetHSVColor.h, pTargetHSVColor.s, pTargetHSVColor.v);
-				ForwardHSVColor();
-				//gEngfuncs.Con_Printf("H: %f S: %f V:%f\n", pNowHSVColor.h, pNowHSVColor.s, pNowHSVColor.v);
-				hsv_to_rgb(pNowHSVColor.h, pNowHSVColor.s, pNowHSVColor.v, pNowColor.r, pNowColor.g, pNowColor.b);
+				switch ((int)pHUDCVarDizzy->value)
+				{
+					case 0: break;
+					case 1: {
+						rgb_to_hsv(pNowColor.r, pNowColor.g, pNowColor.b, pNowHSVColor.h, pNowHSVColor.s, pNowHSVColor.v);
+						rgb_to_hsv(GetSafeColorCVar(pHUDCVarR), GetSafeColorCVar(pHUDCVarG), GetSafeColorCVar(pHUDCVarB),
+							pTargetHSVColor.h, pTargetHSVColor.s, pTargetHSVColor.v);
+						ForwardHSVColor();
+						//gEngfuncs.Con_Printf("H: %f S: %f V:%f\n", pNowHSVColor.h, pNowHSVColor.s, pNowHSVColor.v);
+						hsv_to_rgb(pNowHSVColor.h, pNowHSVColor.s, pNowHSVColor.v, pNowColor.r, pNowColor.g, pNowColor.b);
+						break;
+					}
+					default: {
+						ForwardRGBColor();
+						break;
+					}
+				}
 			}
 		}
 		else 
