@@ -120,15 +120,11 @@ void rgb_to_hsv(int r, int g, int b, float& h, float& s, float& v)
 	float fmax = imax / 255.0;
 	float fmin = imin / 255.0;
 	float multiplier = (imin == imax) ? 0.0 : 60 / (fmax - fmin);
-
-	if (r == imax) 	// red is dominant
-	{
-		h = (multiplier * (fg - fb) + 360);
-		if (h >= 360) h -= 360;	// take quick modulus, % doesn't work with floats
-	}
-	else if (g == imax)// green is dominant
+	if (r == imax)
+		h = fmod((multiplier * (fg - fb) + 360),360);
+	else if (g == imax)
 		h = multiplier * (fb - fr) + 120;
-	else				// blue is dominant
+	else
 		h = multiplier * (fr - fg) + 240;
 	if (imax == 0)
 		s = 0;
@@ -139,34 +135,20 @@ void rgb_to_hsv(int r, int g, int b, float& h, float& s, float& v)
 void hsv_to_rgb(float h, float s, float v, int& r, int& g, int& b)
 {
 	h /= 60;
-	int hi = (int)h;
+	int hi = (int)h % 6;//大于360度情况
 	float f = h - hi;
-	// all the following *255 are to move from [0,1] to [0,255] domains
-	// because rgb are assumed [0,255] integers
-	int p = round(v * (1 - s) * 255);
-	int q = round(v * (1 - f * s) * 255);
-	int t = round(v * (1 - (1 - f) * s) * 255);
-	int iv = round(v * 255);
+	int p = round(v * (1 - s) * 254);
+	int q = round(v * (1 - f * s) * 254);
+	int t = round(v * (1 - (1 - f) * s) * 254);
+	int iv = round(v * 254);
 	switch (hi)
 	{
-	case 0:
-		r = iv; g = t; b = p;
-		break;
-	case 1:
-		r = q; g = iv; b = p;
-		break;
-	case 2:
-		r = p; g = iv; b = t;
-		break;
-	case 3:
-		r = p; g = q; b = iv;
-		break;
-	case 4:
-		r = t; g = p; b = iv;
-		break;
-	case 5:
-		r = iv; g = p; b = q;
-		break;
+		case 0: r = iv; g = t; b = p;break;
+		case 1: r = q; g = iv; b = p;break;
+		case 2: r = p; g = iv; b = t;break;
+		case 3: r = p; g = q; b = iv;break;
+		case 4: r = t; g = p; b = iv;break;
+		case 5: r = iv; g = p; b = q;break;
 	}
 }
 void ForwardHSVColor()
