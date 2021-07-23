@@ -6,6 +6,11 @@ cl_exportfuncs_t gExportfuncs;
 mh_interface_t *g_pInterface;
 metahook_api_t *g_pMetaHookAPI;
 mh_enginesave_t *g_pMetaSave;
+
+
+HINSTANCE g_hInstance, g_hThisModule, g_hEngineModule;
+PVOID g_dwEngineBase;
+DWORD g_dwEngineSize;
 DWORD g_dwEngineBuildnum;
 int g_iEngineType;
 
@@ -26,29 +31,39 @@ void IPlugins::LoadEngine(void)
 {
 	g_iEngineType = g_pMetaHookAPI->GetEngineType();
 	g_dwEngineBuildnum = g_pMetaHookAPI->GetEngineBuildnum();
+	g_hEngineModule = g_pMetaHookAPI->GetEngineModule();
+	g_dwEngineBase = g_pMetaHookAPI->GetEngineBase();
+	g_dwEngineSize = g_pMetaHookAPI->GetEngineSize();
 }
 
 void IPlugins::LoadClient(cl_exportfuncs_t *pExportFunc)
 {
-	PUCHAR ClientBase = (PUCHAR)GetModuleHandleA("client.dll");
-	if (ClientBase)
-	{
-		auto ClientSize = g_pMetaHookAPI->GetModuleSize((HMODULE)ClientBase);
-		DWORD addr = (DWORD)g_pMetaHookAPI->SearchPattern((void*)ClientBase, ClientSize, R_SCALE_COLOR, sizeof(R_SCALE_COLOR) - 1);
-		R_ScaleColor = (decltype(R_ScaleColor))addr;
-		Sig_FuncNotFound(R_ScaleColor);
+	memcpy(&gExportfuncs, pExportFunc, sizeof(gExportfuncs));
+	memcpy(&gEngfuncs, g_pMetaSave->pEngineFuncs, sizeof(gEngfuncs));
 
-		addr = (DWORD)g_pMetaHookAPI->SearchPattern((void*)ClientBase, ClientSize, R_CALCDAMAGE_DIRECTION, sizeof(R_CALCDAMAGE_DIRECTION) - 1);
-		R_CalcDamageDirection = (decltype(R_CalcDamageDirection))addr;
-		Sig_FuncNotFound(R_CalcDamageDirection);
+	if (g_iEngineType == ENGINE_SVENGINE)
+	{
+		PUCHAR ClientBase = (PUCHAR)GetModuleHandleA("client.dll");
+		if (ClientBase)
+		{
+			auto ClientSize = g_pMetaHookAPI->GetModuleSize((HMODULE)ClientBase);
+			DWORD addr = (DWORD)g_pMetaHookAPI->SearchPattern((void*)ClientBase, ClientSize, R_SCALE_COLOR, sizeof(R_SCALE_COLOR) - 1);
+			Sig_AddrNotFound(R_ScaleColor);
+			R_ScaleColor = (decltype(R_ScaleColor))addr;
+
+			addr = (DWORD)g_pMetaHookAPI->SearchPattern((void*)ClientBase, ClientSize, R_CALCDAMAGE_DIRECTION, sizeof(R_CALCDAMAGE_DIRECTION) - 1);
+			Sig_AddrNotFound(R_CalcDamageDirection);
+			R_CalcDamageDirection = (decltype(R_CalcDamageDirection))addr;
+		}
+		else
+			Sig_NotFound("client.dll");
 	}
 	else
-		Sig_NotFound("client.dll");
+		Sig_NotFound("Sven Co-op");
 	
 	g_pMetaHookAPI->InlineHook(R_ScaleColor, HookedColorScale, (void*&)R_ScaleColor);
 	g_pMetaHookAPI->InlineHook(R_CalcDamageDirection, HookedCalcDamageDirection, (void*&)R_CalcDamageDirection);
 
-	memcpy(&gExportfuncs, pExportFunc, sizeof(gExportfuncs));
 	pExportFunc->Initialize = Initialize;
 	pExportFunc->HUD_Init = HUD_Init;
 	pExportFunc->HUD_Redraw = HUD_Redraw;
