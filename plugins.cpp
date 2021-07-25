@@ -61,8 +61,8 @@ void IPlugins::LoadClient(cl_exportfuncs_t *pExportFunc)
 	else
 		Sig_NotFound("Sven Co-op");
 	
-	g_pMetaHookAPI->InlineHook(R_ScaleColor, HookedColorScale, (void*&)R_ScaleColor);
-	g_pMetaHookAPI->InlineHook(R_CalcDamageDirection, HookedCalcDamageDirection, (void*&)R_CalcDamageDirection);
+	g_pMetaHookAPI->InlineHook((void*)R_ScaleColor, HookedColorScale, (void**)&R_ScaleColor);
+	g_pMetaHookAPI->InlineHook((void*)R_CalcDamageDirection, HookedCalcDamageDirection, (void**)&R_CalcDamageDirection);
 
 	pExportFunc->Initialize = Initialize;
 	pExportFunc->HUD_Init = HUD_Init;

@@ -102,7 +102,7 @@ int GetSafeColorCVar(cvar_t* cvar)
 }
 void __fastcall HookedCalcDamageDirection(void*pThis, int dummy, int x, float y, float z)
 {
-	if (pHUDCVarDizzy->value >= 1)
+	if (pHUDCVarDizzy->value > 0)
 	{
 		if (!bIsInFadeOut)
 			bIsInFadeOut = true;
@@ -171,9 +171,9 @@ void ForwardHSVColor()
 }
 void ForwardRGBColor()
 {
-	pNowColor.r += pHUDCVarR->value - pNowColor.r * (1 - iStepCounter / GetTotalStep(pHUDCVarDizzyTime));
-	pNowColor.g += pHUDCVarG->value - pNowColor.g * (1 - iStepCounter / GetTotalStep(pHUDCVarDizzyTime));
-	pNowColor.b += pHUDCVarB->value - pNowColor.b * (1 - iStepCounter / GetTotalStep(pHUDCVarDizzyTime));
+	pNowColor.r += pHUDCVarR->value - pNowColor.r * (iStepCounter / GetTotalStep(pHUDCVarDizzyTime));
+	pNowColor.g += pHUDCVarG->value - pNowColor.g * (iStepCounter / GetTotalStep(pHUDCVarDizzyTime));
+	pNowColor.b += pHUDCVarB->value - pNowColor.b * (iStepCounter / GetTotalStep(pHUDCVarDizzyTime));
 }
 void HookedColorScale(int* r, int* g, int* b, int a)
 {
