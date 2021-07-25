@@ -149,7 +149,7 @@ void HSVToRGB(float h, float s, float v, int& r, int& g, int& b)
 	float section = h / 60;
 	float c = v * s;
 	float x = c * (1 - abs(fmod(section, 2) - 1));
-	float hr, hg, hb;
+	float hr = 0, hg = 0, hb = 0;
 	switch ((int)section) {
 		case 0:hr = c, hg = x, hb = 0; break;
 		case 1:hr = x; hg = c; hb = 0; break;
