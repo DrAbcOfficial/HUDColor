@@ -8,16 +8,14 @@ cl_enginefunc_t gEngfuncs;
 
 typedef struct
 {
-	int  r;
-	int  g;
-	int  b;
-}COLOR_RGB;
-typedef struct
-{
-	float  h;
-	float  s;
-	float  v;
-}COLOR_HSV;
+	int  r = 0;
+	int  g = 0;
+	int  b = 0;
+
+	float  h = 0;
+	float  s = 0;
+	float  v = 0;
+}COLOR;
 
 cvar_t* pHUDCVarR = NULL;
 cvar_t* pHUDCVarG = NULL;
@@ -32,16 +30,34 @@ cvar_t* pHUDCVarDizzyTime = NULL;
 
 bool bIsInFadeOut = false;
 int iStepCounter = 0;
-COLOR_RGB pNowColor = {0,0,0};
-COLOR_HSV pNowHSVColor = { 0,0,0 };
-COLOR_HSV pTargetHSVColor = { 0,0,0 };
+int iTotalStep = 0;
 float flNextFadeTime = 0;
+float flNowDizzyTime = 0;
+
+COLOR pNowColor;
+COLOR pTargetColor;
 
 #define FADE_INTERVAL 0.01
-#define GetTotalStep(cvar) max(0, cvar->value / FADE_INTERVAL)
 #define clamp(n,a,b) min(max(n,a),b)
 #define max3(a,b,c) max(a,max(b,c))
 #define min3(a,b,c) min(a,min(b,c))
+
+void Sys_ErrorEx(const char* fmt, ...)
+{
+	char msg[4096] = { 0 };
+
+	va_list argptr;
+
+	va_start(argptr, fmt);
+	_vsnprintf(msg, sizeof(msg), fmt, argptr);
+	va_end(argptr);
+
+	if (gEngfuncs.pfnClientCmd)
+		gEngfuncs.pfnClientCmd("escape\n");
+
+	MessageBox(NULL, msg, "Fatal Error", MB_ICONERROR);
+	TerminateProcess((HANDLE)(-1), 0);
+}
 
 int Initialize(struct cl_enginefuncs_s *pEnginefuncs, int iVersion)
 {
@@ -66,7 +82,7 @@ void HUD_Init(void)
 }
 int HUD_Redraw(float time, int intermission)
 {
-	if (bIsInFadeOut && iStepCounter > 0 && flNextFadeTime <= time)
+	if (bIsInFadeOut && flNextFadeTime <= time)
 	{
 		iStepCounter--;
 		flNextFadeTime = time + FADE_INTERVAL;
@@ -76,23 +92,9 @@ int HUD_Redraw(float time, int intermission)
 			iStepCounter = 0;
 		}
 	}
+	if (pHUDCVarDizzyTime->value != flNowDizzyTime)
+		iTotalStep = max(0, pHUDCVarDizzyTime->value / FADE_INTERVAL);
 	return gExportfuncs.HUD_Redraw(time, intermission);
-}
-void Sys_ErrorEx(const char* fmt, ...)
-{
-	char msg[4096] = { 0 };
-
-	va_list argptr;
-
-	va_start(argptr, fmt);
-	_vsnprintf(msg, sizeof(msg), fmt, argptr);
-	va_end(argptr);
-
-	if (gEngfuncs.pfnClientCmd)
-		gEngfuncs.pfnClientCmd("escape\n");
-
-	MessageBox(NULL, msg, "Fatal Error", MB_ICONERROR);
-	TerminateProcess((HANDLE)(-1), 0);
 }
 int GetSafeColorCVar(cvar_t* cvar)
 {
@@ -106,7 +108,7 @@ void __fastcall HookedCalcDamageDirection(void*pThis, int dummy, int x, float y,
 	{
 		if (!bIsInFadeOut)
 			bIsInFadeOut = true;
-		iStepCounter = GetTotalStep(pHUDCVarDizzyTime);
+		iStepCounter = iTotalStep;
 		if (pNowColor.r != 250 && pNowColor.g != 0 && pNowColor.b != 0)
 		{
 			pNowColor.r = GetSafeColorCVar(pHUDCVarPainR);
@@ -165,15 +167,17 @@ void HSVToRGB(float h, float s, float v, int& r, int& g, int& b)
 }
 void ForwardHSVColor()
 {
-	pNowHSVColor.h += pTargetHSVColor.h - pNowHSVColor.h * (1 - iStepCounter / GetTotalStep(pHUDCVarDizzyTime));
-	pNowHSVColor.s += pTargetHSVColor.s - pNowHSVColor.s * (1 - iStepCounter / GetTotalStep(pHUDCVarDizzyTime));
-	pNowHSVColor.v += pTargetHSVColor.v - pNowHSVColor.v * (1 - iStepCounter / GetTotalStep(pHUDCVarDizzyTime));
+	float flStep = iStepCounter / iTotalStep;
+	pNowColor.h += pTargetColor.h - pNowColor.h * (1 - flStep);
+	pNowColor.s += pTargetColor.s - pNowColor.s * (1 - flStep);
+	pNowColor.v += pTargetColor.v - pNowColor.v * (1 - flStep);
 }
 void ForwardRGBColor()
 {
-	pNowColor.r += pHUDCVarR->value - pNowColor.r * (iStepCounter / GetTotalStep(pHUDCVarDizzyTime));
-	pNowColor.g += pHUDCVarG->value - pNowColor.g * (iStepCounter / GetTotalStep(pHUDCVarDizzyTime));
-	pNowColor.b += pHUDCVarB->value - pNowColor.b * (iStepCounter / GetTotalStep(pHUDCVarDizzyTime));
+	float flStep = iStepCounter / iTotalStep;
+	pNowColor.r += pHUDCVarR->value - pNowColor.r * flStep;
+	pNowColor.g += pHUDCVarG->value - pNowColor.g * flStep;
+	pNowColor.b += pHUDCVarB->value - pNowColor.b * flStep;
 }
 void HookedColorScale(int* r, int* g, int* b, int a)
 {
@@ -183,18 +187,18 @@ void HookedColorScale(int* r, int* g, int* b, int a)
 		//°¤´ò¶¶¶¯
 		if (bIsInFadeOut)
 		{
-			if (iStepCounter < GetTotalStep(pHUDCVarDizzyTime))
+			if (iStepCounter < iTotalStep)
 			{
 				switch ((int)pHUDCVarDizzy->value)
 				{
 					case 0: break;
 					case 2: {
-						RGBToHSV(pNowColor.r, pNowColor.g, pNowColor.b, pNowHSVColor.h, pNowHSVColor.s, pNowHSVColor.v);
+						RGBToHSV(pNowColor.r, pNowColor.g, pNowColor.b, pNowColor.h, pNowColor.s, pNowColor.v);
 						RGBToHSV(GetSafeColorCVar(pHUDCVarR), GetSafeColorCVar(pHUDCVarG), GetSafeColorCVar(pHUDCVarB),
-							pTargetHSVColor.h, pTargetHSVColor.s, pTargetHSVColor.v);
+							pTargetColor.h, pTargetColor.s, pTargetColor.v);
 						ForwardHSVColor();
 						//gEngfuncs.Con_Printf("H: %f S: %f V:%f\n", pNowHSVColor.h, pNowHSVColor.s, pNowHSVColor.v);
-						HSVToRGB(pNowHSVColor.h, pNowHSVColor.s, pNowHSVColor.v, pNowColor.r, pNowColor.g, pNowColor.b);
+						HSVToRGB(pNowColor.h, pNowColor.s, pNowColor.v, pNowColor.r, pNowColor.g, pNowColor.b);
 						break;
 					}
 					default: {
